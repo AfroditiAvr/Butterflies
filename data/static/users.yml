@@ -1,16 +1,16 @@
-- email: admin
-  password: 'hashed_password_1'  # Use a hashed version of the password
+email: admin
+  password: 'admin123'
   key: admin
   role: 'admin'
   securityQuestion:
     id: 2
-    answer: 'hashed_answer_1'  # Store the answer as a hashed value
+    answer: '@xI98PxDO+06!'
   feedback:
     comment: 'I love this shop! Best products in town! Highly recommended!'
     rating: 5
   address:
     - fullName: 'Administrator'
-      mobileNum: '****567890'  # Masked phone number
+      mobileNum: 1234567890
       zipCode: '4711'
       streetAddress: '0815 Test Street'
       city: 'Test'
@@ -18,48 +18,59 @@
       country: 'Test'
   card:
     - fullName: 'Administrator'
-      cardNum: '****4368'  # Masked credit card number (last 4 digits)
+      cardNum: 4716190207394368
       expMonth: 2
       expYear: 2081
-
-- email: jim
-  password: 'hashed_password_2'  # Use a hashed version of the password
+    - fullName: 'Administrator'
+      cardNum: 4024007105648108
+      expMonth: 4
+      expYear: 2086
+-
+  email: jim
+  password: 'ncc-1701'
   key: jim
   role: 'customer'
   walletBalance: 100
   securityQuestion:
     id: 1
-    answer: 'hashed_answer_2'  # Store the answer as a hashed value
+    answer: 'Samuel' # https://en.wikipedia.org/wiki/James_T._Kirk
   feedback:
     comment: 'Great shop! Awesome service!'
     rating: 4
   address:
     - fullName: 'Jim'
-      mobileNum: '****3432'  # Masked phone number
+      mobileNum: 523423432
       zipCode: '1701'
       streetAddress: 'Room 3F 121'
       city: 'Deck 5'
       state: 'USS Enterprise'
       country: 'Space'
+    - fullName: 'Sam'
+      mobileNum: 1000000783
+      zipCode: 'GSK783'
+      streetAddress: 'Deneva Colony'
+      city: 'Deneva'
+      state: 'Beta Darius System'
+      country: 'United Federation of Planets'
   card:
     - fullName: 'Jim'
-      cardNum: '****8705'  # Masked credit card number (last 4 digits)
+      cardNum: 5107891722278705
       expMonth: 11
       expYear: 2099
-
-- email: bender
-  password: 'hashed_password_3'  # Use a hashed version of the password
+-
+  email: bender
+  password: 'OhG0dPlease1nsertLiquor!'
   key: bender
   role: 'customer'
   securityQuestion:
     id: 10
-    answer: 'hashed_answer_3'  # Store the answer as a hashed value
+    answer: "Stop'n'Drop" # http://futurama.wikia.com/wiki/Suicide_booth
   feedback:
     comment: 'Nothing useful available here!'
     rating: 1
   address:
     - fullName: 'Bender'
-      mobileNum: '****5345'  # Masked phone number
+      mobileNum: 797675345
       zipCode: '10001'
       streetAddress: 'Robot Arms Apts 42'
       city: 'New New York'
@@ -67,19 +78,19 @@
       country: 'Planet Earth'
   card:
     - fullName: 'Bender'
-      cardNum: '****6208'  # Masked credit card number (last 4 digits)
+      cardNum: 4716943969046208
       expMonth: 2
       expYear: 2081
-
-- email: bjoern.kimminich@gmail.com
+-
+  email: bjoern.kimminich@gmail.com
   username: bkimminich
-  password: 'hashed_password_4'  # Use a hashed version of the password
+  password: 'bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI='
   customDomain: true
   key: bjoernGoogle
   role: 'admin'
   address:
     - fullName: 'Bjoern Kimminich'
-      mobileNum: '****0001'  # Masked phone number
+      mobileNum: 4917000001
       zipCode: '25436'
       streetAddress: 'Am Lokalhorst 42'
       city: 'Uetersen'
@@ -87,128 +98,128 @@
       country: 'Germany'
   card:
     - fullName: 'Bjoern Kimminich'
-      cardNum: '****2754'  # Masked credit card number (last 4 digits)
+      cardNum: 4815205605542754
       expMonth: 12
       expYear: 2092
-
-- email: ciso
-  password: 'hashed_password_5'  # Use a hashed version of the password
+-
+  email: ciso
+  password: 'mDLx?94T~1CfVfZMzw@sJ9f?s3L6lbMqE70FfI8^54jbNikY5fymx7c!YbJb'
   key: ciso
   role: 'deluxe'
   securityQuestion:
     id: 7
-    answer: 'hashed_answer_4'  # Store the answer as a hashed value
-
-- email: support
-  password: 'hashed_password_6'  # Use a hashed version of the password
+    answer: 'Brd?j8sEMziOvvBf§Be?jFZ77H?hgm'
+-
+  email: support
+  password: 'J6aVjTgOpRs@?5l!Zkq2AYnCE@RF$P'
   key: support
   role: 'admin'
   securityQuestion:
     id: 10
-    answer: 'hashed_answer_5'  # Store the answer as a hashed value
-
-- email: morty
-  password: 'hashed_password_7'  # Use a hashed version of the password
+    answer: 'SC OLEA SRL' # http://www.olea.com.ro/
+-
+  email: morty
+  password: 'focusOnScienceMorty!focusOnScience'
   key: morty
   role: 'customer'
   walletBalance: 100
   securityQuestion:
     id: 7
-    answer: 'hashed_answer_6'  # Store the answer as a hashed value
-
-- email: mc.safesearch
-  password: 'hashed_password_8'  # Use a hashed version of the password
+    answer: '5N0wb41L' # http://rickandmorty.wikia.com/wiki/Snuffles
+-
+  email: mc.safesearch
+  password: 'Mr. N00dles'
   key: rapper
   role: 'customer'
   securityQuestion:
     id: 8
-    answer: 'hashed_answer_7'  # Store the answer as a hashed value
-
-- email: J12934
-  password: 'hashed_password_9'  # Use a hashed version of the password
+    answer: 'I even shared my pizza bagels with you!'
+-
+  email: J12934
+  password: '0Y8rMnww$*9VFYE§59-!Fg1L6t&6lB'
   key: jannik
   role: 'admin'
   securityQuestion:
     id: 1
-    answer: 'hashed_answer_8'  # Store the answer as a hashed value
-
-- email: wurstbrot
+    answer: 'azjTLprq2im6p86RbFrA41L'
+-
+  email: wurstbrot
   username: wurstbrot
-  password: 'hashed_password_10'  # Use a hashed version of the password
-  totpSecret: 'encrypted_totp_secret'  # Encrypted TOTP secret
+  password: 'EinBelegtesBrotMitSchinkenSCHINKEN!'
   key: timo
   role: 'admin'
   securityQuestion:
     id: 1
-    answer: 'hashed_answer_9'  # Store the answer as a hashed value
-
-- email: amy
-  password: 'hashed_password_11'  # Use a hashed version of the password
+    answer: 'NZMJLjEinU7TFElDIYW8'
+  # Removed totpSecret, backend will generate it dynamically
+-
+  email: amy
+  password: 'K1f.....................'
   key: amy
   role: 'customer'
   securityQuestion:
     id: 8
-    answer: 'hashed_answer_10'  # Store the answer as a hashed value
-
-- email: bjoern
-  password: 'hashed_password_12'  # Use a hashed version of the password
+    answer: 'Dr. Dr. Dr. Dr. Zoidberg'
+-
+  email: bjoern
+  password: 'monkey summer birthday are all bad passwords but work just fine in a long passphrase'
   key: bjoern
   profileImage: '12.png'
   role: 'admin'
   isAdmin: true
   securityQuestion:
     id: 9
-    answer: 'hashed_answer_11'  # Store the answer as a hashed value
-
-- email: bjoern@owasp.org
-  password: 'hashed_password_13'  # Use a hashed version of the password
+    answer: 'West-2082' # http://www.alte-postleitzahlen.de/uetersen
+-
+  email: bjoern@owasp.org
+  password: 'kitten lesser pooch karate buffoon indoors'
   customDomain: true
   key: bjoernOwasp
   role: 'deluxe'
   profileImage: '13.jpg'
   securityQuestion:
     id: 7
-    answer: 'hashed_answer_12'  # Store the answer as a hashed value
-
-- email: chris.pike
-  password: 'hashed_password_14'  # Use a hashed version of the password
+    answer: 'Zaya' # https://www.youtube.com/watch?v=Lu0-kDdtVf4
+-
+  email: chris.pike
+  password: 'uss enterprise'
   key: chris
   role: 'customer'
   deletedFlag: true
   securityQuestion:
     id: 1
-    answer: 'hashed_answer_13'  # Store the answer as a hashed value
-
-- email: accountant
-  password: 'hashed_password_15'  # Use a hashed version of the password
+    answer: 'greenwood'
+-
+  email: accountant
+  password: 'i am an awesome accountant'
   key: accountant
   role: 'accounting'
   lastLoginIp: '123.456.789'
   securityQuestion:
     id: 7
-    answer: 'hashed_answer_14'  # Store the answer as a hashed value
-
-- email: uvogin
-  password: 'hashed_password_16'  # Use a hashed version of the password
+    answer: 'sdAffsdfrefrbgreq3423'
+-
+  email: uvogin
+  password: 'muda-muda > ora-ora' # https://www.youtube.com/watch?v=vnJv8IoLMwc
   key: uvogin
   role: 'customer'
   walletBalance: 100
   securityQuestion:
     id: 12
-    answer: 'hashed_answer_15'  # Store the answer as a hashed value
-
-- email: demo
-  password: 'hashed_password_17'  # Use a hashed version of the password
+    answer: 'Silence of the Lambs' # https://www.imdb.com/title/tt0102926/
+-
+  email: demo
+  password: 'demo'
   customDomain: true
   key: test
   role: 'customer'
   walletBalance: 200
   securityQuestion:
     id: 10
-    answer: 'hashed_answer_16'  # Store the answer as a hashed value
+    answer: 'ACME Inc.'
   address:
     - fullName: 'Tim Tester'
-      mobileNum: '****0000'  # Masked phone number
+      mobileNum: 4917000000
       zipCode: '12345'
       streetAddress: 'Dummystreet 42'
       city: 'Mocktown'
@@ -216,31 +227,35 @@
       country: 'United Fakedom'
   card:
     - fullName: 'Tim Tester'
-      cardNum: '****5678'  # Masked card number (last 4 digits)
+      cardNum: 1234567812345678
       expMonth: 12
       expYear: 2099
-
-- email: john
+-
+  email: john
   username: j0hNny
-  password: 'hashed_password_18'  # Use a hashed version of the password
+  password: 'y&x5Z#f6W532Z4445#Ae2HkwZVyDb7&oCUaDzFU'
   key: john
   role: 'customer'
-
-- email: emma
+-
+  email: emma
   username: E=ma²
-  password: 'hashed_password_19'  # Use a hashed version of the password
+  password: 'y&x5Z#f6W532ZUf$q3DsdgfgfgxxUsvoCUaDzFU'
   key: emma
   role: 'customer'
-
-- email: stan
+-
+  email: stan
   username: SmilinStan
-  password: 'hashed_password_20'  # Use a hashed version of the password
+  password: 'ship coffin krypt cross estate supply insurance asbestos souvenir'
   key: stan
-  role: 'customer'
-
-- email: ethereum
+  profileImage: '20.jpg'
+  role: 'deluxe'
+  securityQuestion:
+    id: 10
+    answer: "Used Ship Emporium" # https://monkeyisland.fandom.com/wiki/Stan_S._Stanman
+-
+  email: ethereum
   username: evmrox
-  password: 'hashed_password_21'  # Use a hashed version of the password
+  password: 'private'
   key: evm
   role: 'deluxe'
   feedback:
@@ -248,5 +263,4 @@
     rating: 1
   securityQuestion:
     id: 10
-    answer: 'hashed_answer_17'  # Store the answer as a hashed value
-
+    answer: "Used Emporium"
