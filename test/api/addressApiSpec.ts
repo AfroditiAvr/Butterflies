@@ -177,3 +177,17 @@ describe('/api/Addresss/:id', () => {
       .expect('status', 200)
   })
 })
+
+it('POST should fail if address fields contain invalid input', async () => {
+  const addressDetails = {
+    fullName: '<script>alert("XSS")</script>',
+    mobileNum: '123456789012345',
+    zipCode: 'INVALID ZIP',
+    streetAddress: 'Unsafe Street'
+  };
+
+  return createAddress(authHeader, addressDetails)
+    .expect('status', 400);
+});
+
+
