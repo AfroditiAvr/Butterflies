@@ -5,137 +5,7 @@
 
 // Addresss.test.ts
 
-import frisby from 'frisby';
 
-// Constants
-const API_URL = 'http://localhost:3000/api';
-const REST_URL = 'http://localhost:3000/rest';
-const jsonHeader = { 'content-type': 'application/json' };
-
-let authHeader: { Authorization: string, 'content-type': string };
-let addressId: string;
-
-const validAddress = {
-  fullName: 'Jim',
-  mobileNum: '9800000000',
-  zipCode: 'NX 101',
-  streetAddress: 'Bakers Street',
-  city: 'NYC',
-  state: 'NY',
-  country: 'USA'
-};
-
-const invalidPinCode = { zipCode: 'NX 10111111' };
-const invalidMobileNumber = { mobileNum: '10000000000' };
-
-// Authenticate user and set token
-const authenticateUser = async () => {
-  const response = await frisby.post(`${REST_URL}/user/login`, {
-    headers: jsonHeader,
-    body: {
-      email: 'jim@juice-sh.op',
-      password: 'ncc-1701'
-    }
-  });
-
-  if (response.status === 200) {
-    const { token } = response.json.authentication;
-    authHeader = { Authorization: `Bearer ${token}`, 'content-type': 'application/json' };
-  }
-};
-
-// Helper functions
-const sendPostRequest = (addressBody, auth = true) => {
-  return frisby.post(`${API_URL}/Addresss`, {
-    headers: auth ? authHeader : null,
-    body: addressBody
-  });
-};
-
-const sendPutRequest = (addressId, body) => {
-  return frisby.put(`${API_URL}/Addresss/${addressId}`, {
-    headers: authHeader,
-    body
-  }, { json: true });
-};
-
-const sendDeleteRequest = (addressId) => {
-  return frisby.del(`${API_URL}/Addresss/${addressId}`, { headers: authHeader });
-};
-
-beforeAll(async () => {
-  await authenticateUser();
-
-  const response = await sendPostRequest(validAddress);
-  addressId = response.json.data.id;
-});
-
-describe('/api/Addresss', () => {
-
-  it('GET all addresses is forbidden via public API', async () => {
-    await frisby.get(`${API_URL}/Addresss`).expect('status', 401);
-  });
-
-  it('GET all addresses with authentication', async () => {
-    await frisby.get(`${API_URL}/Addresss`, { headers: authHeader }).expect('status', 200);
-  });
-
-  it('POST new address with all valid fields', async () => {
-    await sendPostRequest(validAddress).expect('status', 201);
-  });
-
-  it('POST new address with invalid pin code', async () => {
-    await sendPostRequest({ ...validAddress, ...invalidPinCode }).expect('status', 400);
-  });
-
-  it('POST new address with invalid mobile number', async () => {
-    await sendPostRequest({ ...validAddress, ...invalidMobileNumber }).expect('status', 400);
-  });
-
-  it('POST new address is forbidden via public API', async () => {
-    await sendPostRequest(validAddress, false).expect('status', 401);
-  });
-});
-
-describe('/api/Addresss/:id', () => {
-
-  it('GET address by id is forbidden via public API', async () => {
-    await frisby.get(`${API_URL}/Addresss/${addressId}`).expect('status', 401);
-  });
-
-  it('PUT update address is forbidden via public API', async () => {
-    await sendPutRequest(addressId, { quantity: 2 }).expect('status', 401);
-  });
-
-  it('DELETE address by id is forbidden via public API', async () => {
-    await sendDeleteRequest(addressId).expect('status', 401);
-  });
-
-  it('GET address by id with authentication', async () => {
-    await frisby.get(`${API_URL}/Addresss/${addressId}`, { headers: authHeader }).expect('status', 200);
-  });
-
-  it('PUT update address by id with valid data', async () => {
-    await sendPutRequest(addressId, { fullName: 'Jimy' })
-      .expect('status', 200)
-      .expect('json', 'data', { fullName: 'Jimy' });
-  });
-
-  it('PUT update address by id with invalid mobile number', async () => {
-    await sendPutRequest(addressId, { mobileNum: '10000000000' }).expect('status', 400);
-  });
-
-  it('PUT update address by id with invalid pin code', async () => {
-    await sendPutRequest(addressId, { zipCode: 'NX 10111111' }).expect('status', 400);
-  });
-
-  it('DELETE address by id with authentication', async () => {
-    await sendDeleteRequest(addressId).expect('status', 200);
-  });
-});
-
-
-/*
 import frisby = require('frisby')
 
 const API_URL = 'http://localhost:3000/api'
@@ -453,7 +323,6 @@ describe('/api/Addresss/:id', () => {
     return frisby.del(API_URL + '/Addresss/' + addressId, { headers: authHeader })
       .expect('status', 200)
   })
-  */
 })
 
 */
