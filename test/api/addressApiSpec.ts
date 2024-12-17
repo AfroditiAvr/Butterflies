@@ -27,6 +27,71 @@ beforeAll(() => {
 })
 
 describe('/api/Addresss', () => {
+
+  const validAddress = {
+    fullName: 'Jim',
+    mobileNum: '9800000000',
+    zipCode: 'NX 101',
+    streetAddress: 'Bakers Street',
+    city: 'NYC',
+    state: 'NY',
+    country: 'USA'
+  };
+
+  const invalidPinCode = {
+    zipCode: 'NX 10111111'
+  };
+
+  const invalidMobileNumber = {
+    mobileNum: '10000000000'
+  };
+
+  const sendPostRequest = (addressBody, auth = true) => {
+    return frisby.post(API_URL + '/Addresss', {
+      headers: auth ? authHeader : null,
+      body: addressBody
+    });
+  };
+
+  it('GET all addresses is forbidden via public API', () => {
+    return frisby.get(API_URL + '/Addresss')
+      .expect('status', 401);
+  });
+
+  it('GET all addresses with authentication', () => {
+    return frisby.get(API_URL + '/Addresss', { headers: authHeader })
+      .expect('status', 200);
+  });
+
+  it('POST new address with all valid fields', () => {
+    return sendPostRequest(validAddress)
+      .expect('status', 201);
+  });
+
+  it('POST new address with invalid pin code', () => {
+    return sendPostRequest({
+      ...validAddress,
+      ...invalidPinCode
+    })
+      .expect('status', 400);
+  });
+
+  it('POST new address with invalid mobile number', () => {
+    return sendPostRequest({
+      ...validAddress,
+      ...invalidMobileNumber
+    })
+      .expect('status', 400);
+  });
+
+  it('POST new address is forbidden via public API', () => {
+    return sendPostRequest(validAddress, false)
+      .expect('status', 401);
+  });
+});
+
+/*
+describe('/api/Addresss', () => {
   it('GET all addresses is forbidden via public API', () => {
     return frisby.get(API_URL + '/Addresss')
       .expect('status', 401)
@@ -99,7 +164,7 @@ describe('/api/Addresss', () => {
   })
 
 
-})
+})*/
 
 describe('/api/Addresss/:id', () => {
   beforeAll(() => {
