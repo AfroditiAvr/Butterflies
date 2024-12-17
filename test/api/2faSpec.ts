@@ -40,6 +40,12 @@ async function login ({ email, password, totpSecret }: { email: string, password
     return totpRes.json.authentication
   }
 
+.catch((res: any) => {
+  console.error('Login error:', res);
+  throw new Error(`Failed to login '${email}'`);
+});
+
+  
   return loginRes.json.authentication
 }
 
