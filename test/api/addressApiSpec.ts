@@ -90,6 +90,83 @@ describe('/api/Addresss', () => {
   });
 });
 
+
+describe('/api/Addresss/:id', () => {
+
+  const validAddress = {
+    fullName: 'Jim',
+    mobileNum: '9800000000',
+    zipCode: 'NX 101',
+    streetAddress: 'Bakers Street',
+    city: 'NYC',
+    state: 'NY',
+    country: 'USA'
+  };
+
+  const sendPutRequest = (addressId, body) => {
+    return frisby.put(API_URL + `/Addresss/${addressId}`, {
+      headers: authHeader,
+      body
+    }, { json: true });
+  };
+
+  const sendDeleteRequest = (addressId) => {
+    return frisby.del(API_URL + `/Addresss/${addressId}`, { headers: authHeader });
+  };
+
+  beforeAll(() => {
+    return frisby.post(API_URL + '/Addresss', {
+      headers: authHeader,
+      body: validAddress
+    })
+      .expect('status', 201)
+      .then(({ json }) => {
+        addressId = json.data.id;
+      });
+  });
+
+  it('GET address by id is forbidden via public API', () => {
+    return frisby.get(API_URL + `/Addresss/${addressId}`)
+      .expect('status', 401);
+  });
+
+  it('PUT update address is forbidden via public API', () => {
+    return sendPutRequest(addressId, { quantity: 2 })
+      .expect('status', 401);
+  });
+
+  it('DELETE address by id is forbidden via public API', () => {
+    return sendDeleteRequest(addressId)
+      .expect('status', 401);
+  });
+
+  it('GET address by id with authentication', () => {
+    return frisby.get(API_URL + `/Addresss/${addressId}`, { headers: authHeader })
+      .expect('status', 200);
+  });
+
+  it('PUT update address by id with valid data', () => {
+    return sendPutRequest(addressId, { fullName: 'Jimy' })
+      .expect('status', 200)
+      .expect('json', 'data', { fullName: 'Jimy' });
+  });
+
+  it('PUT update address by id with invalid mobile number', () => {
+    return sendPutRequest(addressId, { mobileNum: '10000000000' })
+      .expect('status', 400);
+  });
+
+  it('PUT update address by id with invalid pin code', () => {
+    return sendPutRequest(addressId, { zipCode: 'NX 10111111' })
+      .expect('status', 400);
+  });
+
+  it('DELETE address by id with authentication', () => {
+    return sendDeleteRequest(addressId)
+      .expect('status', 200);
+  });
+});
+
 /*
 describe('/api/Addresss', () => {
   it('GET all addresses is forbidden via public API', () => {
@@ -164,7 +241,7 @@ describe('/api/Addresss', () => {
   })
 
 
-})*/
+})
 
 describe('/api/Addresss/:id', () => {
   beforeAll(() => {
@@ -243,6 +320,7 @@ describe('/api/Addresss/:id', () => {
     return frisby.del(API_URL + '/Addresss/' + addressId, { headers: authHeader })
       .expect('status', 200)
   })
+  */
 })
 
 
