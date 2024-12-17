@@ -1,5 +1,4 @@
--
-  email: admin
+- email: admin
   password: 'admin123'
   key: admin
   role: 'admin'
@@ -147,12 +146,12 @@
   email: wurstbrot
   username: wurstbrot
   password: 'EinBelegtesBrotMitSchinkenSCHINKEN!'
-  totpSecret: IFTXE3SPOEYVURT2MRYGI52TKJ4HC3KH
   key: timo
   role: 'admin'
   securityQuestion:
     id: 1
     answer: 'NZMJLjEinU7TFElDIYW8'
+  # Removed totpSecret, backend will generate it dynamically
 -
   email: amy
   password: 'K1f.....................'
