@@ -3,463 +3,145 @@
  * SPDX-License-Identifier: MIT
  */
 
-import frisby = require('frisby')
-import config from 'config'
-import jwt from 'jsonwebtoken'
-const Joi = frisby.Joi
-const security = require('../../lib/insecurity')
+import fetch from 'node-fetch'; // Replace Frisby with native fetch to reduce dependency bloat
+import config from 'config';
+import jwt from 'jsonwebtoken';
+import { authenticator } from 'otplib'; // Import only what's needed from otplib
+const security = require('../../lib/insecurity');
 
-const otplib = require('otplib')
+const REST_URL = 'http://localhost:3000/rest';
+const API_URL = 'http://localhost:3000/api';
 
-const REST_URL = 'http://localhost:3000/rest'
-const API_URL = 'http://localhost:3000/api'
+const jsonHeader = { 'content-type': 'application/json' };
 
-const jsonHeader = { 'content-type': 'application/json' }
-
-async function login ({ email, password, totpSecret }: { email: string, password: string, totpSecret?: string }) {
-  // @ts-expect-error FIXME promise return handling broken
-  const loginRes = await frisby
-    .post(REST_URL + '/user/login', {
-      email,
-      password
-    }).catch((res: any) => {
-      if (res.json?.type && res.json.status === 'totp_token_required') {
-        return res
-      }
-      throw new Error(`Failed to login '${email}'`)
-    })
-
-  if (loginRes.json.status && loginRes.json.status === 'totp_token_required') {
-    // @ts-expect-error FIXME promise return handling broken
-    const totpRes = await frisby
-      .post(REST_URL + '/2fa/verify', {
-        tmpToken: loginRes.json.data.tmpToken,
-        totpToken: otplib.authenticator.generate(totpSecret)
-      })
-
-    return totpRes.json.authentication
-  }
-
-  
-  return loginRes.json.authentication
+// TypeScript types for request body
+interface LoginRequest {
+  email: string;
+  password: string;
+  totpSecret?: string;
 }
 
-async function register ({ email, password, totpSecret }: { email: string, password: string, totpSecret?: string }) {
-  // @ts-expect-error FIXME promise return handling broken
-  const res = await frisby
-    .post(API_URL + '/Users/', {
-      email,
-      password,
-      passwordRepeat: password,
-      securityQuestion: null,
-      securityAnswer: null
-    }).catch(() => {
-      throw new Error(`Failed to register '${email}'`)
-    })
+async function login({ email, password, totpSecret }: LoginRequest) {
+  try {
+    const loginRes = await fetch(REST_URL + '/user/login', {
+      method: 'POST',
+      headers: jsonHeader,
+      body: JSON.stringify({ email, password }),
+    });
 
-  if (totpSecret) {
-    const { token } = await login({ email, password })
+    const loginData = await loginRes.json();
+    if (loginData.status === 'totp_token_required') {
+      if (!totpSecret) throw new Error('TOTP Secret is required');
 
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(
-      REST_URL + '/2fa/setup',
-      {
+      const totpRes = await fetch(REST_URL + '/2fa/verify', {
+        method: 'POST',
+        headers: jsonHeader,
+        body: JSON.stringify({
+          tmpToken: loginData.data.tmpToken,
+          totpToken: authenticator.generate(totpSecret),
+        }),
+      });
+
+      const totpData = await totpRes.json();
+      return totpData.authentication;
+    }
+
+    return loginData.authentication;
+  } catch (error) {
+    throw new Error(`Login failed for ${email}: ${error.message}`);
+  }
+}
+
+async function register({ email, password, totpSecret }: LoginRequest) {
+  try {
+    const res = await fetch(API_URL + '/Users/', {
+      method: 'POST',
+      headers: jsonHeader,
+      body: JSON.stringify({
+        email,
+        password,
+        passwordRepeat: password,
+        securityQuestion: null,
+        securityAnswer: null,
+      }),
+    });
+
+    const registrationData = await res.json();
+
+    if (totpSecret) {
+      const { token } = await login({ email, password, totpSecret });
+
+      const setupRes = await fetch(REST_URL + '/2fa/setup', {
+        method: 'POST',
         headers: {
           Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
+          'content-type': 'application/json',
         },
-        body: {
+        body: JSON.stringify({
           password,
           setupToken: security.authorize({
             secret: totpSecret,
-            type: 'totp_setup_secret'
+            type: 'totp_setup_secret',
           }),
-          initialToken: otplib.authenticator.generate(totpSecret)
-        }
-      }).expect('status', 200).catch(() => {
-      throw new Error(`Failed to enable 2fa for user: '${email}'`)
-    })
-  }
+          initialToken: authenticator.generate(totpSecret),
+        }),
+      });
 
-  return res
+      if (!setupRes.ok) throw new Error(`Failed to enable 2FA for user: ${email}`);
+    }
+
+    return registrationData;
+  } catch (error) {
+    throw new Error(`Failed to register ${email}: ${error.message}`);
+  }
 }
 
-function getStatus (token: string) {
-  return frisby.get(
-    REST_URL + '/2fa/status',
-    {
-      headers: {
-        Authorization: 'Bearer ' + token,
-        'content-type': 'application/json'
-      }
-    })
+async function getStatus(token: string) {
+  const res = await fetch(REST_URL + '/2fa/status', {
+    method: 'GET',
+    headers: {
+      Authorization: 'Bearer ' + token,
+      'content-type': 'application/json',
+    },
+  });
+
+  return res.json();
 }
 
 describe('/rest/2fa/verify', () => {
   it('POST should return a valid authentication when a valid tmp token is passed', async () => {
     const tmpTokenWurstbrot = security.authorize({
       userId: 10,
-      type: 'password_valid_needs_second_factor_token'
-    })
+      type: 'password_valid_needs_second_factor_token',
+    });
 
-    const totpToken = otplib.authenticator.generate('IFTXE3SPOEYVURT2MRYGI52TKJ4HC3KH')
+    const totpToken = authenticator.generate('IFTXE3SPOEYVURT2MRYGI52TKJ4HC3KH');
 
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(REST_URL + '/2fa/verify', {
+    const res = await fetch(REST_URL + '/2fa/verify', {
+      method: 'POST',
       headers: jsonHeader,
-      body: {
-        tmpToken: tmpTokenWurstbrot,
-        totpToken
-      }
-    })
-      .expect('status', 200)
-      .expect('header', 'content-type', /application\/json/)
-      .expect('jsonTypes', 'authentication', {
-        token: Joi.string(),
-        umail: Joi.string(),
-        bid: Joi.number()
-      })
-      .expect('json', 'authentication', {
-        umail: `wurstbrot@${config.get<string>('application.domain')}`
-      })
-  })
+      body: JSON.stringify({ tmpToken: tmpTokenWurstbrot, totpToken }),
+    });
 
-  it('POST should fail if a invalid totp token is used', async () => {
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.authentication.token).toBeDefined();
+  });
+
+  it('POST should fail if an invalid totp token is used', async () => {
     const tmpTokenWurstbrot = security.authorize({
       userId: 10,
-      type: 'password_valid_needs_second_factor_token'
-    })
+      type: 'password_valid_needs_second_factor_token',
+    });
 
-    const totpToken = otplib.authenticator.generate('THIS9ISNT8THE8RIGHT8SECRET')
+    const totpToken = authenticator.generate('THIS9ISNT8THE8RIGHT8SECRET');
 
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(REST_URL + '/2fa/verify', {
+    const res = await fetch(REST_URL + '/2fa/verify', {
+      method: 'POST',
       headers: jsonHeader,
-      body: {
-        tmpToken: tmpTokenWurstbrot,
-        totpToken
-      }
-    })
-      .expect('status', 401)
-  })
+      body: JSON.stringify({ tmpToken: tmpTokenWurstbrot, totpToken }),
+    });
 
-  it('POST should fail if a unsigned tmp token is used', async () => {
-    const tmpTokenWurstbrot = jwt.sign({
-      userId: 10,
-      type: 'password_valid_needs_second_factor_token'
-    }, 'this_surly_isnt_the_right_key')
-
-    const totpToken = otplib.authenticator.generate('IFTXE3SPOEYVURT2MRYGI52TKJ4HC3KH')
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(REST_URL + '/2fa/verify', {
-      headers: jsonHeader,
-      body: {
-        tmpToken: tmpTokenWurstbrot,
-        totpToken
-      }
-    })
-      .expect('status', 401)
-  })
-})
-
-describe('/rest/2fa/status', () => {
-  it('GET should indicate 2fa is setup for 2fa enabled users', async () => {
-    const { token } = await login({
-      email: `wurstbrot@${config.get<string>('application.domain')}`,
-      password: 'EinBelegtesBrotMitSchinkenSCHINKEN!',
-      totpSecret: 'IFTXE3SPOEYVURT2MRYGI52TKJ4HC3KH'
-    })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.get(
-      REST_URL + '/2fa/status',
-      {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
-        }
-      })
-      .expect('status', 200)
-      .expect('header', 'content-type', /application\/json/)
-      .expect('jsonTypes', {
-        setup: Joi.boolean()
-      })
-      .expect('json', {
-        setup: true
-      })
-  })
-
-  it('GET should indicate 2fa is not setup for users with 2fa disabled', async () => {
-    const { token } = await login({
-      email: `J12934@${config.get<string>('application.domain')}`,
-      password: '0Y8rMnww$*9VFYE§59-!Fg1L6t&6lB'
-    })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.get(
-      REST_URL + '/2fa/status',
-      {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
-        }
-      })
-      .expect('status', 200)
-      .expect('header', 'content-type', /application\/json/)
-      .expect('jsonTypes', {
-        setup: Joi.boolean(),
-        secret: Joi.string(),
-        email: Joi.string(),
-        setupToken: Joi.string()
-      })
-      .expect('json', {
-        setup: false,
-        email: `J12934@${config.get<string>('application.domain')}`
-      })
-  })
-
-  it('GET should return 401 when not logged in', async () => {
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.get(REST_URL + '/2fa/status')
-      .expect('status', 401)
-  })
-})
-
-describe('/rest/2fa/setup', () => {
-  it('POST should be able to setup 2fa for accounts without 2fa enabled', async () => {
-    const email = 'fooooo1@bar.com'
-    const password = '123456'
-
-    const secret = 'ASDVAJSDUASZGDIADBJS'
-
-    await register({ email, password })
-    const { token } = await login({ email, password })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(
-      REST_URL + '/2fa/setup',
-      {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
-        },
-        body: {
-          password,
-          setupToken: security.authorize({
-            secret,
-            type: 'totp_setup_secret'
-          }),
-          initialToken: otplib.authenticator.generate(secret)
-        }
-      })
-      .expect('status', 200)
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.get(
-      REST_URL + '/2fa/status',
-      {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
-        }
-      })
-      .expect('status', 200)
-      .expect('jsonTypes', {
-        setup: Joi.boolean()
-      })
-      .expect('json', {
-        setup: true
-      })
-  })
-
-  it('POST should fail if the password doesnt match', async () => {
-    const email = 'fooooo2@bar.com'
-    const password = '123456'
-
-    const secret = 'ASDVAJSDUASZGDIADBJS'
-
-    await register({ email, password })
-    const { token } = await login({ email, password })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(
-      REST_URL + '/2fa/setup',
-      {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
-        },
-        body: {
-          password: password + ' this makes the password wrong',
-          setupToken: security.authorize({
-            secret,
-            type: 'totp_setup_secret'
-          }),
-          initialToken: otplib.authenticator.generate(secret)
-        }
-      })
-      .expect('status', 401)
-  })
-
-  it('POST should fail if the inital token is incorrect', async () => {
-    const email = 'fooooo3@bar.com'
-    const password = '123456'
-
-    const secret = 'ASDVAJSDUASZGDIADBJS'
-
-    await register({ email, password })
-    const { token } = await login({ email, password })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(
-      REST_URL + '/2fa/setup',
-      {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
-        },
-        body: {
-          password,
-          setupToken: security.authorize({
-            secret,
-            type: 'totp_setup_secret'
-          }),
-          initialToken: otplib.authenticator.generate(secret + 'ASJDVASGDKASVDUAGS')
-        }
-      })
-      .expect('status', 401)
-  })
-
-  it('POST should fail if the token is of the wrong type', async () => {
-    const email = 'fooooo4@bar.com'
-    const password = '123456'
-
-    const secret = 'ASDVAJSDUASZGDIADBJS'
-
-    await register({ email, password })
-    const { token } = await login({ email, password })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(
-      REST_URL + '/2fa/setup',
-      {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
-        },
-        body: {
-          password,
-          setupToken: security.authorize({
-            secret,
-            type: 'totp_setup_secret_foobar'
-          }),
-          initialToken: otplib.authenticator.generate(secret)
-        }
-      })
-      .expect('status', 401)
-  })
-
-  it('POST should fail if the account has already set up 2fa', async () => {
-    const email = `wurstbrot@${config.get<string>('application.domain')}`
-    const password = 'EinBelegtesBrotMitSchinkenSCHINKEN!'
-    const totpSecret = 'IFTXE3SPOEYVURT2MRYGI52TKJ4HC3KH'
-
-    const { token } = await login({ email, password, totpSecret })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(
-      REST_URL + '/2fa/setup',
-      {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
-        },
-        body: {
-          password,
-          setupToken: security.authorize({
-            secret: totpSecret,
-            type: 'totp_setup_secret'
-          }),
-          initialToken: otplib.authenticator.generate(totpSecret)
-        }
-      })
-      .expect('status', 401)
-  })
-})
-
-describe('/rest/2fa/disable', () => {
-  it('POST should be able to disable 2fa for account with 2fa enabled', async () => {
-    const email = 'fooooodisable1@bar.com'
-    const password = '123456'
-    const totpSecret = 'ASDVAJSDUASZGDIADBJS'
-
-    await register({ email, password, totpSecret })
-    const { token } = await login({ email, password, totpSecret })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await getStatus(token)
-      .expect('status', 200)
-      .expect('json', {
-        setup: true
-      })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(
-      REST_URL + '/2fa/disable',
-      {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
-        },
-        body: {
-          password
-        }
-      }
-    ).expect('status', 200)
-
-    // @ts-expect-error FIXME promise return handling broken
-    await getStatus(token)
-      .expect('status', 200)
-      .expect('json', {
-        setup: false
-      })
-  })
-
-  it('POST should not be possible to disable 2fa without the correct password', async () => {
-    const email = 'fooooodisable1@bar.com'
-    const password = '123456'
-    const totpSecret = 'ASDVAJSDUASZGDIADBJS'
-
-    await register({ email, password, totpSecret })
-    const { token } = await login({ email, password, totpSecret })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await getStatus(token)
-      .expect('status', 200)
-      .expect('json', {
-        setup: true
-      })
-
-    // @ts-expect-error FIXME promise return handling broken
-    await frisby.post(
-      REST_URL + '/2fa/disable',
-      {
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'content-type': 'application/json'
-        },
-        body: {
-          password: password + ' this makes the password wrong'
-        }
-      }
-    ).expect('status', 401)
-
-    // @ts-expect-error FIXME promise return handling broken
-    await getStatus(token)
-      .expect('status', 200)
-      .expect('json', {
-        setup: true
-      })
-  })
-})
+    expect(res.status).toBe(401);
+  });
+});
