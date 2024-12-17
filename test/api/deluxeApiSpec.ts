@@ -5,107 +5,104 @@
 
 import frisby = require('frisby')
 import config from 'config'
-import dotenv from 'dotenv'
-
-// Load environment variables from .env file
-dotenv.config()
 
 const jsonHeader = { 'content-type': 'application/json' }
-const REST_URL = 'https://localhost:3000/rest'  // Use HTTPS for security
-const API_URL = 'https://localhost:3000/api'    // Use HTTPS for security
+const REST_URL = 'http://localhost:3000/rest'
+const API_URL = 'http://localhost:3000/api'
 
 async function login ({ email, password }: { email: string, password: string }) {
-  try {
-    const loginRes = await frisby
-      .post(`${REST_URL}/user/login`, {
-        email,
-        password
-      })
+  // @ts-expect-error FIXME promise return handling broken
+  const loginRes = await frisby
+    .post(`${REST_URL}/user/login`, {
+      email,
+      password
+    }).catch((res: any) => {
+      if (res.json?.type && res.json.status === 'totp_token_required') {
+        return res
+      }
+      throw new Error(`Failed to login '${email}'`)
+    })
 
-    // Handle TOTP token if required
-    if (loginRes.json?.type && loginRes.json.status === 'totp_token_required') {
-      return loginRes
-    }
-
-    return loginRes.json.authentication
-  } catch (error) {
-    throw new Error(`Failed to login '${email}': ${error.message}`)
-  }
+  return loginRes.json.authentication
 }
 
 describe('/rest/deluxe-membership', () => {
-  it('GET deluxe membership status for customers', async () => {
-    const email = process.env.TEST_USER_EMAIL || 'bender@juice-sh.op'
-    const password = process.env.TEST_USER_PASSWORD || 'OhG0dPlease1nsertLiquor!'
-
-    const loginResponse = await frisby.post(REST_URL + '/user/login', {
+  it('GET deluxe membership status for customers', () => {
+    return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: { email, password }
-    })
-
-    const { json: jsonLogin } = loginResponse
-    await frisby.get(REST_URL + '/deluxe-membership', {
-      headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' }
+      body: {
+        email: 'bender@' + config.get<string>('application.domain'),
+        password: 'OhG0dPlease1nsertLiquor!'
+      }
     })
       .expect('status', 200)
-      .expect('json', 'data', { membershipCost: 49 })
+      .then(({ json: jsonLogin }) => {
+        return frisby.get(REST_URL + '/deluxe-membership', {
+          headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' }
+        })
+          .expect('status', 200)
+          .expect('json', 'data', { membershipCost: 49 })
+      })
   })
 
-  it('GET deluxe membership status for deluxe members throws error', async () => {
-    const email = process.env.TEST_DELUXE_USER_EMAIL || 'ciso@juice-sh.op'
-    const password = process.env.TEST_DELUXE_USER_PASSWORD || 'mDLx?94T~1CfVfZMzw@sJ9f?s3L6lbMqE70FfI8^54jbNikY5fymx7c!YbJb'
-
-    const loginResponse = await frisby.post(REST_URL + '/user/login', {
+  it('GET deluxe membership status for deluxe members throws error', () => {
+    return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: { email, password }
+      body: {
+        email: 'ciso@' + config.get<string>('application.domain'),
+        password: 'mDLx?94T~1CfVfZMzw@sJ9f?s3L6lbMqE70FfI8^54jbNikY5fymx7c!YbJb'
+      }
     })
-
-    const { json: jsonLogin } = loginResponse
-    await frisby.get(REST_URL + '/deluxe-membership', {
-      headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' }
-    })
-      .expect('status', 400)
-      .expect('json', 'error', 'You are already a deluxe member!')
+      .expect('status', 200)
+      .then(({ json: jsonLogin }) => {
+        return frisby.get(REST_URL + '/deluxe-membership', {
+          headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' }
+        })
+          .expect('status', 400)
+          .expect('json', 'error', 'You are already a deluxe member!')
+      })
   })
 
-  it('GET deluxe membership status for admin throws error', async () => {
-    const email = process.env.TEST_ADMIN_EMAIL || 'admin@juice-sh.op'
-    const password = process.env.TEST_ADMIN_PASSWORD || 'admin123'
-
-    const loginResponse = await frisby.post(REST_URL + '/user/login', {
+  it('GET deluxe membership status for admin throws error', () => {
+    return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: { email, password }
+      body: {
+        email: 'admin@' + config.get<string>('application.domain'),
+        password: 'admin123'
+      }
     })
-
-    const { json: jsonLogin } = loginResponse
-    await frisby.get(REST_URL + '/deluxe-membership', {
-      headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' }
-    })
-      .expect('status', 400)
-      .expect('json', 'error', 'You are not eligible for deluxe membership!')
+      .expect('status', 200)
+      .then(({ json: jsonLogin }) => {
+        return frisby.get(REST_URL + '/deluxe-membership', {
+          headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' }
+        })
+          .expect('status', 400)
+          .expect('json', 'error', 'You are not eligible for deluxe membership!')
+      })
   })
 
-  it('GET deluxe membership status for accountant throws error', async () => {
-    const email = process.env.TEST_ACCOUNTANT_EMAIL || 'accountant@juice-sh.op'
-    const password = process.env.TEST_ACCOUNTANT_PASSWORD || 'i am an awesome accountant'
-
-    const loginResponse = await frisby.post(REST_URL + '/user/login', {
+  it('GET deluxe membership status for accountant throws error', () => {
+    return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: { email, password }
+      body: {
+        email: 'accountant@' + config.get<string>('application.domain'),
+        password: 'i am an awesome accountant'
+      }
     })
-
-    const { json: jsonLogin } = loginResponse
-    await frisby.get(REST_URL + '/deluxe-membership', {
-      headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' }
-    })
-      .expect('status', 400)
-      .expect('json', 'error', 'You are not eligible for deluxe membership!')
+      .expect('status', 200)
+      .then(({ json: jsonLogin }) => {
+        return frisby.get(REST_URL + '/deluxe-membership', {
+          headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' }
+        })
+          .expect('status', 400)
+          .expect('json', 'error', 'You are not eligible for deluxe membership!')
+      })
   })
 
   it('POST upgrade deluxe membership status for customers', async () => {
     const { token } = await login({
-      email: process.env.TEST_USER_EMAIL || `bender@${config.get<string>('application.domain')}`,
-      password: process.env.TEST_USER_PASSWORD || 'OhG0dPlease1nsertLiquor!'
+      email: `bender@${config.get<string>('application.domain')}`,
+      password: 'OhG0dPlease1nsertLiquor!'
     })
 
     const { json } = await frisby.get(API_URL + '/Cards', {
@@ -128,8 +125,8 @@ describe('/rest/deluxe-membership', () => {
 
   it('POST deluxe membership status with wrong card id throws error', async () => {
     const { token } = await login({
-      email: process.env.TEST_USER_EMAIL || `jim@${config.get<string>('application.domain')}`,
-      password: process.env.TEST_USER_PASSWORD || 'ncc-1701'
+      email: `jim@${config.get<string>('application.domain')}`,
+      password: 'ncc-1701'
     })
 
     await frisby.post(REST_URL + '/deluxe-membership', {
@@ -144,63 +141,66 @@ describe('/rest/deluxe-membership', () => {
       .promise()
   })
 
-  it('POST deluxe membership status for deluxe members throws error', async () => {
-    const email = process.env.TEST_DELUXE_USER_EMAIL || 'ciso@juice-sh.op'
-    const password = process.env.TEST_DELUXE_USER_PASSWORD || 'mDLx?94T~1CfVfZMzw@sJ9f?s3L6lbMqE70FfI8^54jbNikY5fymx7c!YbJb'
-
-    const loginResponse = await frisby.post(REST_URL + '/user/login', {
+  it('POST deluxe membership status for deluxe members throws error', () => {
+    return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: { email, password }
-    })
-
-    const { json: jsonLogin } = loginResponse
-    await frisby.post(REST_URL + '/deluxe-membership', {
-      headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' },
       body: {
-        paymentMode: 'wallet'
+        email: 'ciso@' + config.get<string>('application.domain'),
+        password: 'mDLx?94T~1CfVfZMzw@sJ9f?s3L6lbMqE70FfI8^54jbNikY5fymx7c!YbJb'
       }
     })
-      .expect('status', 400)
-      .expect('json', 'error', 'Something went wrong. Please try again!')
+      .expect('status', 200)
+      .then(({ json: jsonLogin }) => {
+        return frisby.post(REST_URL + '/deluxe-membership', {
+          headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' },
+          body: {
+            paymentMode: 'wallet'
+          }
+        })
+          .expect('status', 400)
+          .expect('json', 'error', 'Something went wrong. Please try again!')
+      })
   })
 
-  it('POST deluxe membership status for admin throws error', async () => {
-    const email = process.env.TEST_ADMIN_EMAIL || 'admin@juice-sh.op'
-    const password = process.env.TEST_ADMIN_PASSWORD || 'admin123'
-
-    const loginResponse = await frisby.post(REST_URL + '/user/login', {
+  it('POST deluxe membership status for admin throws error', () => {
+    return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: { email, password }
-    })
-
-    const { json: jsonLogin } = loginResponse
-    await frisby.post(REST_URL + '/deluxe-membership', {
-      headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' },
       body: {
-        paymentMode: 'wallet'
+        email: 'admin@' + config.get<string>('application.domain'),
+        password: 'admin123'
       }
     })
-      .expect('status', 400)
-      .expect('json', 'error', 'Something went wrong. Please try again!')
+      .expect('status', 200)
+      .then(({ json: jsonLogin }) => {
+        return frisby.post(REST_URL + '/deluxe-membership', {
+          headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' },
+          body: {
+            paymentMode: 'wallet'
+          }
+        })
+          .expect('status', 400)
+          .expect('json', 'error', 'Something went wrong. Please try again!')
+      })
   })
 
-  it('POST deluxe membership status for accountant throws error', async () => {
-    const email = process.env.TEST_ACCOUNTANT_EMAIL || 'accountant@juice-sh.op'
-    const password = process.env.TEST_ACCOUNTANT_PASSWORD || 'i am an awesome accountant'
-
-    const loginResponse = await frisby.post(REST_URL + '/user/login', {
+  it('POST deluxe membership status for accountant throws error', () => {
+    return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
-      body: { email, password }
-    })
-
-    const { json: jsonLogin } = loginResponse
-    await frisby.post(REST_URL + '/deluxe-membership', {
-      headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' },
       body: {
-        paymentMode: 'wallet'
+        email: 'accountant@' + config.get<string>('application.domain'),
+        password: 'i am an awesome accountant'
       }
     })
-      .expect('status', 400)
-      .expect('json', 'error', 'Something went wrong. Please try again!')
+      .expect('status', 200)
+      .then(({ json: jsonLogin }) => {
+        return frisby.post(REST_URL + '/deluxe-membership', {
+          headers: { Authorization: 'Bearer ' + jsonLogin.authentication.token, 'content-type': 'application/json' },
+          body: {
+            paymentMode: 'wallet'
+          }
+        })
+          .expect('status', 400)
+          .expect('json', 'error', 'Something went wrong. Please try again!')
+      })
   })
 })
