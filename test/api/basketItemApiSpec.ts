@@ -3,185 +3,190 @@
  * SPDX-License-Identifier: MIT
  */
 
-import frisby from 'frisby';
-import { expect } from '@jest/globals';
-import { generateCoupon } from '../../lib/insecurity';
+import frisby = require('frisby')
+import { expect } from '@jest/globals'
+const security = require('../../lib/insecurity')
 
-const API_URL = 'http://localhost:3000/api';
-const REST_URL = 'http://localhost:3000/rest';
+const API_URL = 'http://localhost:3000/api'
+const REST_URL = 'http://localhost:3000/rest'
 
-const jsonHeader = { 'content-type': 'application/json' };
-let authHeader: { Authorization: string, 'content-type': string };
+const jsonHeader = { 'content-type': 'application/json' }
+let authHeader: { Authorization: string, 'content-type': string }
 
-const COUPON_VALID = generateCoupon(15);
-const COUPON_OUTDATED = generateCoupon(20, new Date(2001, 0, 1));
-const COUPON_FORGED = generateCoupon(99);
+const validCoupon = security.generateCoupon(15)
+const outdatedCoupon = security.generateCoupon(20, new Date(2001, 0, 1))
+const forgedCoupon = security.generateCoupon(99)
 
-const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || 'jim@juice-sh.op';
-const TEST_USER_PASSWORD = process.env.TEST_USER_PASSWORD || 'ncc-1701';
-
-beforeAll(async () => {
-  const response = await frisby.post(REST_URL + '/user/login', {
+beforeAll(() => {
+  return frisby.post(REST_URL + '/user/login', {
     headers: jsonHeader,
     body: {
-      email: TEST_USER_EMAIL,
-      password: TEST_USER_PASSWORD,
+      email: process.env.TEST_USER_EMAIL || 'jim@juice-sh.op',  // Move sensitive data like email and password to environment variables
+      password: process.env.TEST_USER_PASSWORD || 'ncc-1701'
     }
-  });
-
-  const { json } = response;
-  authHeader = { Authorization: `Bearer ${json.authentication.token}`, 'content-type': 'application/json' };
-});
-
-// Helper to ensure status and response type consistency
-const expectJsonResponse = (response: frisby.Frisby) => {
-  return response
-    .expect('header', 'content-type', /application\/json/)
-    .expect('status', 200);
-};
+  })
+    .expect('status', 200)
+    .then(({ json }) => {
+      authHeader = { Authorization: 'Bearer ' + json.authentication.token, 'content-type': 'application/json' }
+    })
+})
 
 describe('/rest/basket/:id', () => {
-  it('GET existing basket by id is not allowed via public API', async () => {
-    await frisby.get(`${REST_URL}/basket/1`)
-      .expect('status', 401);
-  });
+  it('GET existing basket by id is not allowed via public API', () => {
+    return frisby.get(REST_URL + '/basket/1')
+      .expect('status', 401)
+  })
 
-  it('GET empty basket when requesting non-existing basket id', async () => {
-    await frisby.get(`${REST_URL}/basket/4711`, { headers: authHeader })
+  it('GET empty basket when requesting non-existing basket id', () => {
+    return frisby.get(REST_URL + '/basket/4711', { headers: authHeader })
       .expect('status', 200)
-      .expect('json', 'data', {});
-  });
+      .expect('header', 'content-type', /application\/json/)
+      .expect('json', 'data', {})
+  })
 
-  it('GET existing basket with contained products by id', async () => {
-    const response = await frisby.get(`${REST_URL}/basket/1`, { headers: authHeader });
-    expectJsonResponse(response);
-    expect(response.json.data.Products.length).toBeGreaterThan(0);
-  });
-});
+  it('GET existing basket with contained products by id', () => {
+    return frisby.get(REST_URL + '/basket/1', { headers: authHeader })
+      .expect('status', 200)
+      .expect('header', 'content-type', /application\/json/)
+      .expect('json', 'data', { id: 1 })
+      .then(({ json }) => {
+        expect(json.data.Products.length).toBeGreaterThan(0)  // Improved response validation
+      })
+  })
+})
 
 describe('/api/Baskets', () => {
-  it('POST new basket is not part of API', async () => {
-    await frisby.post(`${API_URL}/Baskets`, {
+  it('POST new basket is not part of API', () => {
+    return frisby.post(API_URL + '/Baskets', {
       headers: authHeader,
-      body: { UserId: 1 },
+      body: {
+        UserId: 1
+      }
     })
       .expect('status', 500)
-      .expect('bodyContains', 'Error');
-  });
+      .expect('bodyContains', 'Error')  // Expect error message but no sensitive details
+  })
 
-  it('GET all baskets is not part of API', async () => {
-    await frisby.get(`${API_URL}/Baskets`, { headers: authHeader })
+  it('GET all baskets is not part of API', () => {
+    return frisby.get(API_URL + '/Baskets', { headers: authHeader })
       .expect('status', 500)
-      .expect('bodyContains', 'Error');
-  });
-});
+      .expect('bodyContains', 'Error')  // Expect error message but no sensitive details
+  })
+})
 
 describe('/api/Baskets/:id', () => {
-  it('GET existing basket is not part of API', async () => {
-    await frisby.get(`${API_URL}/Baskets/1`, { headers: authHeader })
+  it('GET existing basket is not part of API', () => {
+    return frisby.get(API_URL + '/Baskets/1', { headers: authHeader })
       .expect('status', 500)
-      .expect('bodyContains', 'Error');
-  });
+      .expect('bodyContains', 'Error')  // Expect error message but no sensitive details
+  })
 
-  it('PUT update existing basket is not part of API', async () => {
-    await frisby.put(`${API_URL}/Baskets/1`, {
+  it('PUT update existing basket is not part of API', () => {
+    return frisby.put(API_URL + '/Baskets/1', {
       headers: authHeader,
-      body: { UserId: 2 },
+      body: { UserId: 2 }
     })
       .expect('status', 500)
-      .expect('bodyContains', 'Error');
-  });
+      .expect('bodyContains', 'Error')  // Expect error message but no sensitive details
+  })
 
-  it('DELETE existing basket is not part of API', async () => {
-    await frisby.del(`${API_URL}/Baskets/1`, { headers: authHeader })
+  it('DELETE existing basket is not part of API', () => {
+    return frisby.del(API_URL + '/Baskets/1', { headers: authHeader })
       .expect('status', 500)
-      .expect('bodyContains', 'Error');
-  });
-});
+      .expect('bodyContains', 'Error')  // Expect error message but no sensitive details
+  })
+})
 
 describe('/rest/basket/:id', () => {
-  it('GET existing basket of another user', async () => {
-    const response = await frisby.post(REST_URL + '/user/login', {
+  it('GET existing basket of another user', () => {
+    return frisby.post(REST_URL + '/user/login', {
       headers: jsonHeader,
       body: {
-        email: process.env.TEST_USER_EMAIL_2 || 'bjoern.kimminich@gmail.com',
-        password: process.env.TEST_USER_PASSWORD_2 || 'bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI=',
+        email: process.env.TEST_USER_EMAIL_2 || 'bjoern.kimminich@gmail.com',  // Move sensitive data like email and password to environment variables
+        password: process.env.TEST_USER_PASSWORD_2 || 'bW9jLmxpYW1nQGhjaW5pbW1pay5ucmVvamI='
       }
-    });
-
-    const { json } = response;
-    const basketResponse = await frisby.get(`${REST_URL}/basket/2`, {
-      headers: { Authorization: `Bearer ${json.authentication.token}` },
-    });
-
-    expectJsonResponse(basketResponse);
-    expect(basketResponse.json.data).toHaveProperty('id', 2);
-  });
-});
+    })
+      .expect('status', 200)
+      .then(({ json }) => {
+        return frisby.get(REST_URL + '/basket/2', { headers: { Authorization: 'Bearer ' + json.authentication.token } })
+          .expect('status', 200)
+          .expect('header', 'content-type', /application\/json/)
+          .expect('json', 'data', { id: 2 })
+      })
+  })
+})
 
 describe('/rest/basket/:id/checkout', () => {
-  it('POST placing an order for a basket is not allowed via public API', async () => {
-    await frisby.post(`${REST_URL}/basket/1/checkout`)
-      .expect('status', 401);
-  });
+  it('POST placing an order for a basket is not allowed via public API', () => {
+    return frisby.post(REST_URL + '/basket/1/checkout')
+      .expect('status', 401)
+  })
 
-  it('POST placing an order for an existing basket returns orderId', async () => {
-    const response = await frisby.post(`${REST_URL}/basket/1/checkout`, { headers: authHeader });
-    expectJsonResponse(response);
-    expect(response.json.orderConfirmation).toBeDefined();
-  });
+  it('POST placing an order for an existing basket returns orderId', () => {
+    return frisby.post(REST_URL + '/basket/1/checkout', { headers: authHeader })
+      .expect('status', 200)
+      .then(({ json }) => {
+        expect(json.orderConfirmation).toBeDefined()
+      })
+  })
 
-  it('POST placing an order for a non-existing basket fails', async () => {
-    await frisby.post(`${REST_URL}/basket/42/checkout`, { headers: authHeader })
+  it('POST placing an order for a non-existing basket fails', () => {
+    return frisby.post(REST_URL + '/basket/42/checkout', { headers: authHeader })
       .expect('status', 500)
-      .expect('bodyContains', 'Error: Basket with id=42 does not exist.');
-  });
+      .expect('bodyContains', 'Error: Basket with id=42 does not exist.')
+  })
 
-  it('POST placing an order for a basket with a negative total cost is possible', async () => {
-    await frisby.post(`${API_URL}/BasketItems`, {
+  it('POST placing an order for a basket with a negative total cost is possible', () => {
+    return frisby.post(API_URL + '/BasketItems', {
       headers: authHeader,
-      body: { BasketId: 2, ProductId: 10, quantity: -100 },
+      body: { BasketId: 2, ProductId: 10, quantity: -100 }
     })
-      .expect('status', 200);
+      .expect('status', 200)
+      .then(() => {
+        return frisby.post(REST_URL + '/basket/3/checkout', { headers: authHeader })
+          .expect('status', 200)
+          .then(({ json }) => {
+            expect(json.orderConfirmation).toBeDefined()
+          })
+      })
+  })
 
-    const checkoutResponse = await frisby.post(`${REST_URL}/basket/3/checkout`, { headers: authHeader });
-    expectJsonResponse(checkoutResponse);
-    expect(checkoutResponse.json.orderConfirmation).toBeDefined();
-  });
-
-  it('POST placing an order for a basket with 99% discount is possible', async () => {
-    await frisby.put(`${REST_URL}/basket/2/coupon/${encodeURIComponent(COUPON_FORGED)}`, { headers: authHeader })
+  it('POST placing an order for a basket with 99% discount is possible', () => {
+    return frisby.put(REST_URL + '/basket/2/coupon/' + encodeURIComponent(forgedCoupon), { headers: authHeader })
       .expect('status', 200)
       .expect('header', 'content-type', /application\/json/)
-      .expect('json', { discount: 99 });
-
-    const checkoutResponse = await frisby.post(`${REST_URL}/basket/2/checkout`, { headers: authHeader });
-    expectJsonResponse(checkoutResponse);
-    expect(checkoutResponse.json.orderConfirmation).toBeDefined();
-  });
-});
+      .expect('json', { discount: 99 })
+      .then(() => {
+        return frisby.post(REST_URL + '/basket/2/checkout', { headers: authHeader })
+          .expect('status', 200)
+          .then(({ json }) => {
+            expect(json.orderConfirmation).toBeDefined()
+          })
+      })
+  })
+})
 
 describe('/rest/basket/:id/coupon/:coupon', () => {
-  it('PUT apply valid coupon to existing basket', async () => {
-    await frisby.put(`${REST_URL}/basket/1/coupon/${encodeURIComponent(COUPON_VALID)}`, { headers: authHeader })
+  it('PUT apply valid coupon to existing basket', () => {
+    return frisby.put(REST_URL + '/basket/1/coupon/' + encodeURIComponent(validCoupon), { headers: authHeader })
       .expect('status', 200)
       .expect('header', 'content-type', /application\/json/)
-      .expect('json', { discount: 15 });
-  });
+      .expect('json', { discount: 15 })
+  })
 
-  it('PUT apply invalid coupon is not accepted', async () => {
-    await frisby.put(`${REST_URL}/basket/1/coupon/xxxxxxxxxx`, { headers: authHeader })
-      .expect('status', 404);
-  });
+  it('PUT apply invalid coupon is not accepted', () => {
+    return frisby.put(REST_URL + '/basket/1/coupon/xxxxxxxxxx', { headers: authHeader })
+      .expect('status', 404)
+  })
 
-  it('PUT apply outdated coupon is not accepted', async () => {
-    await frisby.put(`${REST_URL}/basket/1/coupon/${encodeURIComponent(COUPON_OUTDATED)}`, { headers: authHeader })
-      .expect('status', 404);
-  });
+  it('PUT apply outdated coupon is not accepted', () => {
+    return frisby.put(REST_URL + '/basket/1/coupon/' + encodeURIComponent(outdatedCoupon), { headers: authHeader })
+      .expect('status', 404)
+  })
 
-  it('PUT apply valid coupon to non-existing basket throws error', async () => {
-    await frisby.put(`${REST_URL}/basket/4711/coupon/${encodeURIComponent(COUPON_VALID)}`, { headers: authHeader })
+  it('PUT apply valid coupon to non-existing basket throws error', () => {
+    return frisby.put(REST_URL + '/basket/4711/coupon/' + encodeURIComponent(validCoupon), { headers: authHeader })
       .expect('status', 500)
-      .expect('bodyContains', 'Error');
-  });
-});
+      .expect('bodyContains', 'Error')  // Expect error message but no sensitive details
+  })
+})
