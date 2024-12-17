@@ -97,8 +97,8 @@ describe('/api/Addresss', () => {
     })
       .expect('status', 401)
   })
-}
-        it('POST should fail if address fields contain invalid input', async () => {
+
+it('POST should fail if address fields contain invalid input', async () => {
   const addressDetails = {
     fullName: '<script>alert("XSS")</script>',
     mobileNum: '123456789012345',
@@ -110,7 +110,8 @@ describe('/api/Addresss', () => {
     .expect('status', 400);
 });
 
-        )
+  
+})
 
 describe('/api/Addresss/:id', () => {
   beforeAll(() => {
