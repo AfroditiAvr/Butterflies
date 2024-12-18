@@ -219,7 +219,6 @@ describe('/api/Challenges/:id', () => {
     return testChallengeModification('DELETE', `${API_URL}/Challenges/1`);
   });
 });
-
 // Testing similar behaviors across multiple "continue code" endpoints using reusable function
 testContinueCodeEndpoints('/continue-code');
 testContinueCodeEndpoints('/continue-code-findIt');
