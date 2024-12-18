@@ -2,7 +2,7 @@
  * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
  * SPDX-License-Identifier: MIT
  */
-
+/*
 import frisby = require('frisby')
 const Joi = frisby.Joi
 const security = require('../../lib/insecurity')
@@ -54,6 +54,56 @@ describe('/api/Complaints/:id', () => {
     })
       .expect('status', 401)
   })
+*/
+import frisby = require('frisby')
+const Joi = frisby.Joi
+const security = require('../../lib/insecurity')
+
+const API_URL = 'http://localhost:3000/api'
+const authHeader = { Authorization: 'Bearer ' + security.authorize(), 'content-type': 'application/json' }
+
+describe('/api/Complaints', () => {
+  it('POST a new complaint', () => {
+    return frisby.post(`${API_URL}/Complaints`, {
+      headers: authHeader,
+      body: { message: 'You have no clue what https://github.com/eslint/eslint-scope/issues/39 means, do you???' }
+    })
+      .expect('status', 201)
+      .expect('header', 'content-type', /application\/json/)
+      .expect('jsonTypes', 'data', {
+        id: Joi.number(),
+        createdAt: Joi.string(),
+        updatedAt: Joi.string()
+      })
+  })
+
+  it('GET all complaints is forbidden via public API', () => {
+    return frisby.get(`${API_URL}/Complaints`)
+      .expect('status', 401)
+  })
+
+  it('GET all complaints with authorization', () => {
+    return frisby.get(`${API_URL}/Complaints`, { headers: authHeader })
+      .expect('status', 200)
+  })
+})
+
+describe('/api/Complaints/:id', () => {
+  const endpoints = [
+    { method: 'GET', description: 'GET existing complaint by id is forbidden' },
+    { method: 'PUT', description: 'PUT update existing complaint is forbidden', body: { message: 'Should not work...' } },
+    { method: 'DELETE', description: 'DELETE existing complaint is forbidden' }
+  ]
+
+  endpoints.forEach(({ method, description, body }) => {
+    it(description, () => {
+      return frisby[method.toLowerCase()](`${API_URL}/Complaints/1`, {
+        headers: authHeader,
+        ...(body && { body })
+      }).expect('status', 401)
+    })
+  })
+})
 
   it('DELETE existing complaint is forbidden', () => {
     return frisby.del(API_URL + '/Complaints/1', { headers: authHeader })
