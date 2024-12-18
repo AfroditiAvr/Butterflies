@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+/*
 import frisby = require('frisby')
 const Joi = frisby.Joi
 const security = require('../../lib/insecurity')
@@ -120,3 +121,106 @@ describe('/rest/continue-code-fixIt', () => {
       .expect('status', 200)
   })
 })
+*/
+
+/*
+ * Copyright (c) 2014-2024 Bjoern Kimminich & the OWASP Juice Shop contributors.
+ * SPDX-License-Identifier: MIT
+ */
+
+import frisby = require('frisby');
+const Joi = frisby.Joi;
+const security = require('../../lib/insecurity');
+
+const API_URL = 'http://localhost:3000/api';
+const REST_URL = 'http://localhost:3000/rest';
+
+// Centralized authorization header generator to ensure tokens are dynamic
+const getAuthHeader = () => ({
+  Authorization: `Bearer ${security.authorize()}`,
+  'Content-Type': 'application/json',
+});
+
+// Centralized function to test the behavior of REST endpoints for "continue codes"
+const testContinueCodeEndpoints = (endpoint: string) => {
+  describe(`${endpoint}`, () => {
+    it('GET can retrieve continue code for currently solved challenges', () => {
+      return frisby.get(`${REST_URL}${endpoint}`).expect('status', 200);
+    });
+
+    it('PUT invalid continue code is rejected', () => {
+      return frisby
+        .put(`${REST_URL}${endpoint}/apply/ThisIsDefinitelyNotAValidContinueCode`)
+        .expect('status', 404);
+    });
+
+    it('PUT continue code for valid challenges is accepted', () => {
+      return frisby
+        .put(
+          `${REST_URL}${endpoint}/apply/ValidContinueCode12345` // Simulate a valid code
+        )
+        .expect('status', 200);
+    });
+  });
+};
+
+describe('/api/Challenges', () => {
+  it('GET all challenges', () => {
+    return frisby
+      .get(`${API_URL}/Challenges`)
+      .expect('status', 200)
+      .expect('header', 'content-type', /application\/json/)
+      .expect('jsonTypes', 'data.*', {
+        id: Joi.number(),
+        key: Joi.string(),
+        name: Joi.string(),
+        description: Joi.string(),
+        difficulty: Joi.number(),
+        solved: Joi.boolean(),
+      });
+  });
+
+  it('POST new challenge is forbidden via public API even when authenticated', () => {
+    return frisby
+      .post(`${API_URL}/Challenges`, {
+        headers: getAuthHeader(),
+        body: {
+          name: 'Invulnerability',
+          description: 'I am not a vulnerability!',
+          difficulty: 3,
+          solved: false,
+        },
+      })
+      .expect('status', 401); // Ensure the API blocks unauthorized actions
+  });
+});
+
+describe('/api/Challenges/:id', () => {
+  const testChallengeModification = (method: string, endpoint: string, body?: object) => {
+    return frisby[method.toLowerCase()](endpoint, {
+      headers: getAuthHeader(),
+      ...(body && { body }), // Include body only if provided
+    }).expect('status', 401);
+  };
+
+  it('GET existing challenge by ID is forbidden via public API even when authenticated', () => {
+    return testChallengeModification('GET', `${API_URL}/Challenges/1`);
+  });
+
+  it('PUT update existing challenge is forbidden via public API even when authenticated', () => {
+    return testChallengeModification('PUT', `${API_URL}/Challenges/1`, {
+      name: 'Vulnerability',
+      description: 'I am a vulnerability!!!',
+      difficulty: 3,
+    });
+  });
+
+  it('DELETE existing challenge is forbidden via public API even when authenticated', () => {
+    return testChallengeModification('DELETE', `${API_URL}/Challenges/1`);
+  });
+});
+
+// Testing similar behaviors across multiple "continue code" endpoints using reusable function
+testContinueCodeEndpoints('/continue-code');
+testContinueCodeEndpoints('/continue-code-findIt');
+testContinueCodeEndpoints('/continue-code-fixIt');
